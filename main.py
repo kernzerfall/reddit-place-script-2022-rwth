@@ -380,8 +380,8 @@ class PlaceClient:
             target_rgb = self.pix[x, y][:3]
 
             # We shouldn't need this since colors in out image.png are exact
-            # If it causes problems, I'll reenable it but it causes a serious hit on performance
-            # self.closest_color(target_rgb)
+            # It causes a serious hit on performance
+            self.closest_color(target_rgb)
 
             new_rgb = target_rgb 
 
