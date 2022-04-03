@@ -1,12 +1,16 @@
 # Reddit Place Script 2022
 
+
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![forthebadge](https://forthebadge.com/images/badges/made-with-python.svg)](https://forthebadge.com)
 [![forthebadge](https://forthebadge.com/images/badges/60-percent-of-the-time-works-every-time.svg)](https://forthebadge.com)
 
+## <span style="color:#004f97;"> RWTH/TUM</span> collab version
+
 ## About
 
 This is a script to draw an image onto r/place (<https://www.reddit.com/r/place/>).
+
 
 ## Features
 
@@ -36,10 +40,8 @@ Note: Please use https://jsonlint.com/ to check that your JSON file is correctly
 
 ```json
 {
-  //Where the image's path is
+  // Image Path, DO NOT TOUCH THIS or auto-updater won't work
   "image_path":"image.png",
-  // [x,y] where you want the top left pixel of the local image to be drawn on canvas
-  "image_start_coords": [741, 610],
   // delay between starting threads (can be 0)
   "thread_delay": 2,
   // array of accounts to use
@@ -49,6 +51,8 @@ Note: Please use https://jsonlint.com/ to check that your JSON file is correctly
       // password of account 1
       "password": "password",
       // which pixel of the image to draw first
+      // Hint: at the time of writing, this should be 1333,753. Leaving it at 0,0 still
+      // works but causes the main loop to get really slow during some heavy calculations
       "start_coords": [0, 0]
     },
     // username of account 2
@@ -56,6 +60,8 @@ Note: Please use https://jsonlint.com/ to check that your JSON file is correctly
       // password of account 2
       "password": "password",
       // which pixel of the image to draw first
+      // Hint: at the time of writing, this should be 1333,753. Leaving it at 0,0 still
+      // works but causes the main loop to get really slow during some heavy calculations
       "start_coords": [0, 0]
     }
     // etc... add as many accounts as you want (but reddit may detect you the more you add)

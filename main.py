@@ -20,14 +20,15 @@ from bs4 import BeautifulSoup
 
 
 from mappings import color_map, name_map
+from rwth import RwthTumCollab
 
 
 class PlaceClient:
     def __init__(self, config_path):
         # Data
         self.json_data = self.get_json_data(config_path)
-        self.pixel_x_start: int = self.json_data["image_start_coords"][0]
-        self.pixel_y_start: int = self.json_data["image_start_coords"][1]
+        self.pixel_x_start: int = 0
+        self.pixel_y_start: int = 0
 
         # In seconds
         self.delay_between_launches = (
@@ -71,6 +72,13 @@ class PlaceClient:
             else "image.jpg"
         )
         self.first_run_counter = 0
+
+        # Initialize Threads
+        RwthTumCollab.UnlockImage()
+        self.img_updater = RwthTumCollab()
+        self.img_updater_thread = self.img_updater.BuildThread(0)
+        self.img_updater_thread.start()
+        self.img_updater_thread.join()
 
         # Initialize-functions
         self.load_image()
@@ -133,6 +141,9 @@ class PlaceClient:
     # Read the input image.jpg file
 
     def load_image(self):
+        # Make sure the image isn't currently being overwritten
+        RwthTumCollab.WaitForImgUnlock()
+
         # Read and load the image to draw and get its dimensions
         try:
             im = Image.open(self.image_path)
@@ -368,7 +379,12 @@ class PlaceClient:
 
             target_rgb = self.pix[x, y][:3]
 
-            new_rgb = self.closest_color(target_rgb)
+            # We shouldn't need this since colors in out image.png are exact
+            # If it causes problems, I'll reenable it but it causes a serious hit on performance
+            # self.closest_color(target_rgb)
+
+            new_rgb = target_rgb 
+
             if pix2[x + self.pixel_x_start, y + self.pixel_y_start] != new_rgb:
                 logger.debug(
                     "{}, {}, {}, {}",
@@ -388,7 +404,8 @@ class PlaceClient:
                     )
                     break
                 else:
-                    logger.info("TransparrentPixel")
+                    # logger.info("TransparrentPixel")
+                    ()
             x += 1
         return x, y, new_rgb
 
@@ -420,10 +437,15 @@ class PlaceClient:
             # Time until next pixel is drawn
             update_str = ""
 
-            # Refresh auth tokens and / or draw a pixel
+            # Refresh auth tokens and / or draw a pixel and / or fetch image
             while True:
                 # reduce CPU usage
                 time.sleep(1)
+
+                if self.img_updater_thread == None or not self.img_updater_thread.is_alive():
+                    self.load_image()
+                    self.img_updater_thread = self.img_updater.BuildThread()
+                    self.img_updater_thread.start()
 
                 # get the current time
                 current_timestamp = math.floor(time.time())

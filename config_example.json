@@ -1,6 +1,5 @@
 {
-    "image_path": "image.jpg",
-    "image_start_coords": [741, 610],
+    "image_path": "image.png",
     "thread_delay": 2,
     "unverified_place_frequency": false,
     "compact_logging": true,
