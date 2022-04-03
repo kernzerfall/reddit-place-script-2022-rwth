@@ -22,7 +22,6 @@ from bs4 import BeautifulSoup
 from stem import Signal, InvalidArguments, SocketError, ProtocolError
 from stem.control import Controller
 
-from mappings import color_map, name_map
 from rwth import RwthTumCollab
 
 from src.mappings import ColorMapper
@@ -238,11 +237,12 @@ class PlaceClient:
         # 0 | 1
         # 2 | 3
         logger.info(
-            "Thread #{} : Attempting to place {} pixel at {}, {}",
+            "Thread #{} : Attempting to place {} pixel at {}, {} (Canvas: {})",
             thread_index,
             ColorMapper.color_id_to_name(color_index_in),
             x + (1000 * (canvas_index % 2)),
             y + (1000 * (canvas_index // 2)),
+            canvas_index
         )
 
         url = "https://gql-realtime-2.reddit.com/query"
@@ -282,7 +282,6 @@ class PlaceClient:
         # If we don't get data, it means we've been rate limited.
         # If we do, a pixel has been successfully placed.
         if response.json()["data"] is None:
-            print(response.json())
             waitTime = math.floor(
                 response.json()["errors"][0]["extensions"]["nextAvailablePixelTs"]
             )
@@ -735,9 +734,13 @@ class PlaceClient:
                     pixel_y_start = self.pixel_y_start + current_c
 
                     if pixel_x_start > 999 and pixel_y_start <= 999:
-                        canvas = 1
                         pixel_x_start -= 1000
                         canvas += 1
+                    elif pixel_x_start > 999 and pixel_y_start > 999:
+                        pixel_x_start -= 1000
+                        pixel_y_start -= 1000
+                        canvas = 3
+                        
                     while pixel_y_start > 999:
                         pixel_y_start -= 1000
                         canvas += 2
