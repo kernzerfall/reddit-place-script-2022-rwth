@@ -11,7 +11,7 @@ from loguru import logger
 
 
 class RwthTumCollab():
-    default_thread_interval = 5 * 60 # 5 mins
+    default_thread_interval = 6 * 60 # 5 mins 50
     _target_image_url = "https://github.com/l0c4lh057/pixel/raw/main/output.png"
     _rgb_transparent_new = (69, 42, 0, 255)
     _image_file = "image.png"
