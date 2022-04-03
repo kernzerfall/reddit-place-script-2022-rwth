@@ -8,6 +8,7 @@ __pycache__/
 test.py
 *.old
 config.json
+image.png
 
 # C extensions
 *.so
