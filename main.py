@@ -162,12 +162,22 @@ class PlaceClient:
     def set_pixel_and_check_ratelimit(
         self, access_token_in, x, y, color_index_in=18, canvas_index=0, thread_index=-1
     ):
+        logx = 0
+        logy = 0
+        if canvas_index == 1:
+            logx = 1
+        elif canvas_index == 2:
+            logy = 1
+        elif canvas_index == 3:
+            logx = 1
+            logy = 1
+
         logger.info(
             "Thread #{} : Attempting to place {} pixel at {}, {}",
             thread_index,
             self.color_id_to_name(color_index_in),
-            x + (1000 * canvas_index),
-            y,
+            x + logx * 1000,
+            y + logy * 1000,
         )
 
         url = "https://gql-realtime-2.reddit.com/query"
@@ -205,15 +215,14 @@ class PlaceClient:
         # If we don't get data, it means we've been rate limited.
         # If we do, a pixel has been successfully placed.
         if response.json()["data"] is None:
+            print(response.json())
             waitTime = math.floor(
                 response.json()["errors"][0]["extensions"]["nextAvailablePixelTs"]
             )
             logger.error("Thread #{} : Failed placing pixel: rate limited", thread_index)
         else:
             waitTime = math.floor(
-                response.json()["data"]["act"]["data"][0]["data"][
-                    "nextAvailablePixelTimestamp"
-                ]
+                response.json()["data"]["act"]["data"][0]["data"]["nextAvailablePixelTimestamp"]
             )
             logger.info("Thread #{} : Succeeded placing pixel", thread_index)
 
@@ -344,7 +353,7 @@ class PlaceClient:
         # TODO: Multiply by canvas_details["canvasConfigurations"][i]["dx"] and canvas_details["canvasConfigurations"][i]["dy"] instead of hardcoding it
         new_img_width = int(canvas_details["canvasWidth"]) * 2
         logger.debug("New image width: {}", new_img_width)
-        new_img_height = int(canvas_details["canvasHeight"])
+        new_img_height = int(canvas_details["canvasHeight"]) * 2
         logger.debug("New image height: {}", new_img_height)
 
         new_img = Image.new("RGB", (new_img_width, new_img_height))
@@ -586,9 +595,18 @@ class PlaceClient:
                     canvas = 0
                     pixel_x_start = self.pixel_x_start + current_r
                     pixel_y_start = self.pixel_y_start + current_c
-                    while pixel_x_start > 999:
+
+                    if pixel_x_start > 999 and pixel_y_start <= 999:
+                        canvas = 1
                         pixel_x_start -= 1000
-                        canvas += 1
+                    elif pixel_x_start > 999 and pixel_y_start > 999:
+                        canvas = 3
+                        pixel_x_start -= 1000
+                        pixel_y_start -= 1000
+                    elif pixel_x_start <= 999 and pixel_y_start > 999:
+                        canvas = 2
+                        pixel_y_start -= 1000
+
 
                     # draw the pixel onto r/place
                     next_pixel_placement_time = self.set_pixel_and_check_ratelimit(
