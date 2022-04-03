@@ -99,7 +99,6 @@ Just create multiple child arrays to "workers" in the .json
 ```json
 {
   "image_path":"image.png",
-  "image_start_coords": [741, 610],
   "thread_delay": 2,
 
   "workers": {
