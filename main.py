@@ -1,38 +1,42 @@
 #!/usr/bin/env python3
 
+import json
+import math
 import os
 import os.path
-import math
-import subprocess
-
-import requests
-import json
-import time
-import threading
-import sys
 import random
-from io import BytesIO
+import subprocess
+import sys
+import threading
+import time
 from http import HTTPStatus
-from websocket import create_connection
-from PIL import Image, UnidentifiedImageError
-from loguru import logger
+from io import BytesIO
+
 import click
+import requests
 from bs4 import BeautifulSoup
-
-from stem import Signal, InvalidArguments, SocketError, ProtocolError
+from loguru import logger
+from PIL import Image, UnidentifiedImageError
+from stem import InvalidArguments, ProtocolError, Signal, SocketError
 from stem.control import Controller
+from websocket import create_connection
 
-from rwth import RwthTumCollab
-
+from rwth import RoamingConfigUpdater, ImageUpdater
 from src.mappings import ColorMapper
 
 
 class PlaceClient:
     def __init__(self, config_path):
+        self.roaming_cfg = RoamingConfigUpdater()
+        self.roaming_cfg_autoupdate = self.roaming_cfg.BuildThread(0)
+        self.roaming_cfg_autoupdate.start()
+        self.roaming_cfg_autoupdate.join()
+
+
         # Data
         self.json_data = self.get_json_data(config_path)
-        self.pixel_x_start: int = 0
-        self.pixel_y_start: int = 0
+        self.pixel_x_start: int = self.roaming_cfg.roamingConfig["image_start_coords"][0]
+        self.pixel_y_start: int = self.roaming_cfg.roamingConfig["image_start_coords"][1]
 
         # In seconds
         self.delay_between_launches = (
@@ -130,19 +134,8 @@ class PlaceClient:
         # Image information
         self.pix = None
         self.image_size = None
-        self.image_path = (
-            self.json_data["image_path"]
-            if "image_path" in self.json_data
-            else "image.jpg"
-        )
+        self.image_path = "image.png"
         self.first_run_counter = 0
-
-        # Initialize Threads
-        RwthTumCollab.UnlockImage()
-        self.img_updater = RwthTumCollab()
-        self.img_updater_thread = self.img_updater.BuildThread(0)
-        self.img_updater_thread.start()
-        self.img_updater_thread.join()
 
         # Initialize-functions
         self.load_image()
@@ -206,7 +199,7 @@ class PlaceClient:
 
     def load_image(self):
         # Make sure the image isn't currently being overwritten
-        RwthTumCollab.WaitForImgUnlock()
+        ImageUpdater.WaitForImgUnlock()
 
         # Read and load the image to draw and get its dimensions
         try:
@@ -558,8 +551,8 @@ class PlaceClient:
 
             try:
                 # Current pixel row and pixel column being drawn
-                current_r = worker["start_coords"][0]
-                current_c = worker["start_coords"][1]
+                current_r = self.roaming_cfg.roamingConfig["internal_start_coords"][0]
+                current_c = self.roaming_cfg.roamingConfig["internal_start_coords"][1]
             except Exception:
                 logger.info("You need to provide start_coords to worker '{}'", name)
                 exit(1)
@@ -572,10 +565,10 @@ class PlaceClient:
                 # reduce CPU usage
                 time.sleep(1)
 
-                if self.img_updater_thread == None or not self.img_updater_thread.is_alive():
+                if not self.roaming_cfg_autoupdate.is_alive():
                     self.load_image()
-                    self.img_updater_thread = self.img_updater.BuildThread()
-                    self.img_updater_thread.start()
+                    self.roaming_cfg_autoupdate = self.roaming_cfg.BuildThread()
+                    self.roaming_cfg_autoupdate.start()
 
                 # get the current time
                 current_timestamp = math.floor(time.time())
@@ -733,13 +726,9 @@ class PlaceClient:
                     pixel_x_start = self.pixel_x_start + current_r
                     pixel_y_start = self.pixel_y_start + current_c
 
-                    if pixel_x_start > 999 and pixel_y_start <= 999:
+                    while pixel_x_start > 999:
                         pixel_x_start -= 1000
                         canvas += 1
-                    elif pixel_x_start > 999 and pixel_y_start > 999:
-                        pixel_x_start -= 1000
-                        pixel_y_start -= 1000
-                        canvas = 3
                         
                     while pixel_y_start > 999:
                         pixel_y_start -= 1000
