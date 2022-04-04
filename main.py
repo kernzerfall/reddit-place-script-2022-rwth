@@ -1,17 +1,16 @@
-#!/usr/bin/env python3
-
-import json
 import math
-import os
-import os.path
-import random
-import subprocess
-import sys
-import threading
-import time
-from http import HTTPStatus
-from io import BytesIO
 
+import requests
+import json
+import time
+import threading
+import sys
+from io import BytesIO
+from http import HTTPStatus
+from websocket import create_connection
+from PIL import Image
+
+from loguru import logger
 import click
 import requests
 from bs4 import BeautifulSoup
@@ -23,6 +22,8 @@ from websocket import create_connection
 
 from rwth import RoamingConfigUpdater, ImageUpdater
 from src.mappings import ColorMapper
+import src.proxy as proxy
+import src.utils as utils
 
 
 class PlaceClient:
@@ -34,9 +35,10 @@ class PlaceClient:
 
 
         # Data
-        self.json_data = self.get_json_data(config_path)
+        self.json_data = utils.get_json_data(self, config_path)
         self.pixel_x_start: int = self.roaming_cfg.roamingConfig["image_start_coords"][0]
         self.pixel_y_start: int = self.roaming_cfg.roamingConfig["image_start_coords"][1]
+        self.logger = logger
 
         # In seconds
         self.delay_between_launches = (
@@ -51,78 +53,14 @@ class PlaceClient:
             and self.json_data["unverified_place_frequency"] is not None
             else False
         )
-        self.proxies = (
-            self.GetProxies(self.json_data["proxies"])
-            if "proxies" in self.json_data and self.json_data["proxies"] is not None
-            else None
-        )
-        if self.proxies is None and os.path.exists(
-            os.path.join(os.getcwd(), "proxies.txt")
-        ):
-            self.proxies = self.get_proxies_text()
-        self.compactlogging = (
-            self.json_data["compact_logging"]
-            if "compact_logging" in self.json_data
-            and self.json_data["compact_logging"] is not None
-            else True
-        )
-        self.using_tor = (
-            self.json_data["using_tor"]
-            if "using_tor" in self.json_data and self.json_data["using_tor"] is not None
-            else False
-        )
-        self.tor_password = (
-            self.json_data["tor_password"]
-            if "tor_password" in self.json_data
-            and self.json_data["tor_password"] is not None
-            else "Passwort"  # this is intentional, as I don't really want to mess around with the torrc again
-        )
-        self.tor_delay = (
-            self.json_data["tor_delay"]
-            if "tor_delay" in self.json_data and self.json_data["tor_delay"] is not None
-            else 10
-        )
-        self.use_builtin_tor = (
-            self.json_data["use_builtin_tor"]
-            if "use_builtin_tor" in self.json_data
-            and self.json_data["use_builtin_tor"] is not None
-            else True
-        )
-        self.tor_port = (
-            self.json_data["tor_port"]
-            if "tor_port" in self.json_data and self.json_data["tor_port"] is not None
-            else 1881
-        )
-        self.tor_control_port = (
-            self.json_data["tor_control_port"]
-            if "tor_port" in self.json_data
-            and self.json_data["tor_control_port"] is not None
-            else 9051
-        )
 
-        # tor connection
-        if self.using_tor:
-            self.proxies = self.GetProxies(["127.0.0.1:" + str(self.tor_port)])
-            if self.use_builtin_tor:
-                subprocess.Popen(
-                    '"'
-                    + os.path.join(os.getcwd(), "./tor/Tor/tor.exe")
-                    + '"'
-                    + " --defaults-torrc "
-                    + '"'
-                    + os.path.join(os.getcwd(), "./Tor/Tor/torrc")
-                    + '"'
-                    + " --HTTPTunnelPort "
-                    + str(self.tor_port),
-                    shell=True,
-                )
-            try:
-                self.tor_controller = Controller.from_port(port=self.tor_control_port)
-                self.tor_controller.authenticate(self.tor_password)
-                logger.info("successfully connected to tor!")
-            except (ValueError, SocketError):
-                logger.error("connection to tor failed, disabling tor")
-                self.using_tor = False
+        self.legacy_transparency = (
+            self.json_data["legacy_transparency"]
+            if "legacy_transparency" in self.json_data
+            and self.json_data["legacy_transparency"] is not None
+            else True
+        )
+        proxy.Init(self)
 
         # Color palette
         self.rgb_colors_array = ColorMapper.generate_rgb_colors_array()
@@ -138,10 +76,11 @@ class PlaceClient:
         self.first_run_counter = 0
 
         # Initialize-functions
-        self.load_image()
+        utils.load_image(self)
 
         self.waiting_thread_index = -1
 
+<<<<<<< HEAD
     """ tor """
 
     def tor_reconnect(self):
@@ -220,18 +159,33 @@ class PlaceClient:
 
         self.image_size = im.size
 
+=======
+>>>>>>> UPSTREAM/main
     """ Main """
     # Draw a pixel at an x, y coordinate in r/place with a specific color
 
     def set_pixel_and_check_ratelimit(
-        self, access_token_in, x, y, color_index_in=18, canvas_index=0, thread_index=-1
+        self,
+        access_token_in,
+        x,
+        y,
+        name,
+        color_index_in=18,
+        canvas_index=0,
+        thread_index=-1,
     ):
         # canvas structure:
         # 0 | 1
         # 2 | 3
+<<<<<<< HEAD
         logger.info(
             "Thread #{} : Attempting to place {} pixel at {}, {} (Canvas: {})",
+=======
+        logger.warning(
+            "Thread #{} - {}: Attempting to place {} pixel at {}, {}",
+>>>>>>> UPSTREAM/main
             thread_index,
+            name,
             ColorMapper.color_id_to_name(color_index_in),
             x + (1000 * (canvas_index % 2)),
             y + (1000 * (canvas_index // 2)),
@@ -265,9 +219,15 @@ class PlaceClient:
         }
 
         response = requests.request(
-            "POST", url, headers=headers, data=payload, proxies=self.GetRandomProxy()
+            "POST",
+            url,
+            headers=headers,
+            data=payload,
+            proxies=proxy.get_random_proxy(self),
         )
-        logger.debug("Thread #{} : Received response: {}", thread_index, response.text)
+        logger.debug(
+            "Thread #{} - {}: Received response: {}", thread_index, name, response.text
+        )
 
         self.waiting_thread_index = -1
 
@@ -275,17 +235,22 @@ class PlaceClient:
         # If we don't get data, it means we've been rate limited.
         # If we do, a pixel has been successfully placed.
         if response.json()["data"] is None:
+            logger.debug(response.json().get("errors"))
             waitTime = math.floor(
                 response.json()["errors"][0]["extensions"]["nextAvailablePixelTs"]
             )
             logger.error(
-                "Thread #{} : Failed placing pixel: rate limited", thread_index
+                "Thread #{} - {}: Failed placing pixel: rate limited",
+                thread_index,
+                name,
             )
         else:
             waitTime = math.floor(
                 response.json()["data"]["act"]["data"][0]["data"]["nextAvailablePixelTimestamp"]
             )
-            logger.info("Thread #{} : Succeeded placing pixel", thread_index)
+            logger.success(
+                "Thread #{} - {}: Succeeded placing pixel", thread_index, name
+            )
 
         # THIS COMMENTED CODE LETS YOU DEBUG THREADS FOR TESTING
         # Works perfect with one thread.
@@ -413,7 +378,7 @@ class PlaceClient:
                                         requests.get(
                                             msg["data"]["name"],
                                             stream=True,
-                                            proxies=self.GetRandomProxy(),
+                                            proxies=proxy.get_random_proxy(self),
                                         ).content
                                     )
                                 ),
@@ -459,6 +424,7 @@ class PlaceClient:
         wasWaiting = False
 
         while True:
+            time.sleep(0.05)
             if self.waiting_thread_index != -1 and self.waiting_thread_index != index:
                 x = originalX
                 y = originalY
@@ -501,17 +467,20 @@ class PlaceClient:
 
             target_rgb = self.pix[x, y]
 
-            new_rgb = ColorMapper.closest_color(target_rgb, self.rgb_colors_array)
+            new_rgb = ColorMapper.closest_color(
+                target_rgb, self.rgb_colors_array, self.legacy_transparency
+            )
             if pix2[x + self.pixel_x_start, y + self.pixel_y_start] != new_rgb:
                 logger.debug(
                     "{}, {}, {}, {}",
                     pix2[x + self.pixel_x_start, y + self.pixel_y_start],
                     new_rgb,
-                    target_rgb[:3] != (69, 42, 0) and new_rgb != (69, 42, 0),
+                    new_rgb != (69, 42, 0),
                     pix2[x, y] != new_rgb,
                 )
 
-                if target_rgb[:3] != (69, 42, 0) and new_rgb != (69, 42, 0):
+                # (69, 42, 0) is a special color reserved for transparency.
+                if new_rgb != (69, 42, 0):
                     logger.debug(
                         "Thread #{} : Replacing {} pixel at: {},{} with {} color",
                         index,
@@ -577,7 +546,9 @@ class PlaceClient:
                 time_until_next_draw = next_pixel_placement_time - current_timestamp
 
                 if time_until_next_draw > 10000:
-                    logger.warning(f"Thread #{index} :: CANCELLED :: Rate-Limit Banned")
+                    logger.warning(
+                        "Thread #{} - {} :: CANCELLED :: Rate-Limit Banned", index, name
+                    )
                     repeat_forever = False
                     break
 
@@ -592,7 +563,7 @@ class PlaceClient:
 
                 if len(update_str) > 0:
                     if not self.compactlogging:
-                        logger.info("Thread #{} :: {}", index, update_str)
+                        logger.info("Thread #{} - {}: {}", index, name, update_str)
 
                 # refresh access token if necessary
                 if (
@@ -608,7 +579,9 @@ class PlaceClient:
                     )
                 ):
                     if not self.compactlogging:
-                        logger.info("Thread #{} :: Refreshing access token", index)
+                        logger.info(
+                            "Thread #{} - {}: Refreshing access token", index, name
+                        )
 
                     # developer's reddit username and password
                     try:
@@ -624,12 +597,17 @@ class PlaceClient:
                     while True:
                         try:
                             client = requests.Session()
+                            client.proxies = proxy.get_random_proxy(self)
                             client.headers.update(
                                 {
                                     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.84 Safari/537.36"
                                 }
                             )
-                            r = client.get("https://www.reddit.com/login")
+
+                            r = client.get(
+                                "https://www.reddit.com/login",
+                                proxies=proxy.get_random_proxy(self),
+                            )
                             login_get_soup = BeautifulSoup(r.content, "html.parser")
                             csrf_token = login_get_soup.find(
                                 "input", {"name": "csrf_token"}
@@ -644,7 +622,7 @@ class PlaceClient:
                             r = client.post(
                                 "https://www.reddit.com/login",
                                 data=data,
-                                proxies=self.GetRandomProxy(),
+                                proxies=proxy.get_random_proxy(self),
                             )
                             break
                         except Exception:
@@ -655,13 +633,15 @@ class PlaceClient:
 
                     if r.status_code != HTTPStatus.OK.value:
                         # password is probably invalid
-                        logger.exception("Authorization failed!")
+                        logger.exception("{} - Authorization failed!", username)
                         logger.debug("response: {} - {}", r.status_code, r.text)
                         return
                     else:
-                        logger.success("Authorization successful!")
+                        logger.success("{} - Authorization successful!", username)
                     logger.info("Obtaining access token...")
-                    r = client.get("https://new.reddit.com/")
+                    r = client.get(
+                        "https://new.reddit.com/", proxies=proxy.get_random_proxy(self)
+                    )
                     data_str = (
                         BeautifulSoup(r.content, features="html.parser")
                         .find("script", {"id": "data"})
@@ -739,6 +719,7 @@ class PlaceClient:
                         self.access_tokens[index],
                         pixel_x_start,
                         pixel_y_start,
+                        name,
                         pixel_color_index,
                         canvas,
                         index,
