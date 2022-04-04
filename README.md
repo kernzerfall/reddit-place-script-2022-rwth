@@ -10,6 +10,22 @@ Koordinaten und Bild werden automatisch heruntergeladen/geupdated. Nur username/
 
 [Roaming-Config](https://georgar.de/api/place/getConfig)
 
+## Linux Crontab
+
+Um den Bot jede Stunde zu resetten, braucht man folgenden crontab Eintrag:
+
+```crontab
+0 * * * * /pfad/zum/reddit-place-script-2022-rwth/crontab-runner.sh
+```
+
+Crontab kann mittels `crontab -e` modifizert werden.
+
+Zusätzlich sollte man sicherstellen, dass crontab-runner.sh ausführbar ist:
+
+```sh
+chmod +x crontab-runner.sh
+```
+
 ## About
 
 This is a script to draw an image onto r/place (<https://www.reddit.com/r/place/>).
