@@ -1,10 +1,14 @@
 # Reddit Place Script 2022
 
-[![Code style: black](./black_badge.svg)](https://github.com/psf/black)
-[![forthebadge](https://forthebadge.com/images/badges/made-with-python.svg)](https://forthebadge.com)
-[![forthebadge](https://forthebadge.com/images/badges/60-percent-of-the-time-works-every-time.svg)](https://forthebadge.com)
+### RWTH roaming autoconfig edition
 
-RWTH/TUM collab version
+Koordinaten und Bild werden automatisch heruntergeladen/geupdated. Nur username/passwort nötig.
+
+## Aktueller Auftrag
+
+![Aktueller Auftrag](https://georgar.de/api/place/getImage)
+
+[Roaming-Config](https://georgar.de/api/place/getConfig)
 
 ## About
 
