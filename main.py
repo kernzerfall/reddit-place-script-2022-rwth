@@ -1,3 +1,5 @@
+#/usr/bin/env python3
+
 import math
 
 import requests
@@ -80,87 +82,6 @@ class PlaceClient:
 
         self.waiting_thread_index = -1
 
-<<<<<<< HEAD
-    """ tor """
-
-    def tor_reconnect(self):
-        if self.using_tor:
-            try:
-                self.tor_controller.signal(Signal.NEWNYM)
-                logger.info("New Tor connection processing")
-                time.sleep(self.tor_delay)
-            except (InvalidArguments, ProtocolError):
-                logger.error("couldn't establish new tor connection, disabling tor")
-                self.using_tor = False
-
-    """ Utils """
-
-    def get_proxies_text(self):
-        pathproxies = os.path.join(os.getcwd(), "proxies.txt")
-        f = open(pathproxies)
-        file = f.read()
-        f.close()
-        proxieslist = file.splitlines()
-        self.proxies = []
-        for i in proxieslist:
-            self.proxies.append({"https": i, "http": i})
-
-    def GetProxies(self, proxies):
-        proxieslist = []
-        for i in proxies:
-            proxieslist.append({"https": i, "http": i})
-        return proxieslist
-
-    def GetRandomProxy(self):
-        if not self.using_tor:
-            randomproxy = None
-            if self.proxies is not None:
-                randomproxy = self.proxies[random.randint(0, len(self.proxies) - 1)]
-            return randomproxy
-        else:
-            self.tor_reconnect()
-            return self.proxies[0]
-
-    def get_json_data(self, config_path):
-        configFilePath = os.path.join(os.getcwd(), config_path)
-
-        if not os.path.exists(configFilePath):
-            exit("No config.json file found. Read the README")
-
-        # To not keep file open whole execution time
-        f = open(configFilePath)
-        json_data = json.load(f)
-        f.close()
-
-        return json_data
-
-    # Read the input image.jpg file
-
-    def load_image(self):
-        # Make sure the image isn't currently being overwritten
-        ImageUpdater.WaitForImgUnlock()
-
-        # Read and load the image to draw and get its dimensions
-        try:
-            im = Image.open(self.image_path)
-        except FileNotFoundError:
-            logger.exception("Failed to load image")
-            exit()
-        except UnidentifiedImageError:
-            logger.exception("File found, but couldn't identify image format")
-
-        # Convert all images to RGBA - Transparency should only be supported with PNG
-        if im.mode != "RGBA":
-            im = im.convert("RGBA")
-            logger.info("Converted to rgba")
-        self.pix = im.load()
-
-        logger.info("Loaded image size: {}", im.size)
-
-        self.image_size = im.size
-
-=======
->>>>>>> UPSTREAM/main
     """ Main """
     # Draw a pixel at an x, y coordinate in r/place with a specific color
 
@@ -177,13 +98,8 @@ class PlaceClient:
         # canvas structure:
         # 0 | 1
         # 2 | 3
-<<<<<<< HEAD
         logger.info(
-            "Thread #{} : Attempting to place {} pixel at {}, {} (Canvas: {})",
-=======
-        logger.warning(
-            "Thread #{} - {}: Attempting to place {} pixel at {}, {}",
->>>>>>> UPSTREAM/main
+            "Thread #{} : Attempting to place {} ({}) pixel at ({}, {}) (Canvas: {})",
             thread_index,
             name,
             ColorMapper.color_id_to_name(color_index_in),
@@ -535,7 +451,7 @@ class PlaceClient:
                 time.sleep(1)
 
                 if not self.roaming_cfg_autoupdate.is_alive():
-                    self.load_image()
+                    utils.load_image(self)
                     self.roaming_cfg_autoupdate = self.roaming_cfg.BuildThread()
                     self.roaming_cfg_autoupdate.start()
 
