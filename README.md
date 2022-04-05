@@ -2,13 +2,21 @@
 
 ### RWTH roaming autoconfig edition
 
-Koordinaten und Bild werden automatisch heruntergeladen/geupdated. Nur username/passwort nötig.
+Überbleibsel eines alten Krieges.
 
-## Aktueller Auftrag
+## Results
 
-![Aktueller Auftrag](https://georgar.de/api/place/getImage)
+[![r/place](archive/rplace_preview.png)](archive/rplace.png) ![Unser Design](archive/final.png)
 
-[Roaming-Config](https://georgar.de/api/place/getConfig)
+* [Design](archive/design.png)
+
+## Letzter Auftrag
+
+![Letzter Auftrag](archive/last_image.png)
+
+[Letztes Roaming-Config](archive/last_config.json)
+
+---
 
 ## Linux Crontab
 

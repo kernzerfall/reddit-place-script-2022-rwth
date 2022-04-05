@@ -13,7 +13,7 @@ from loguru import logger
 
 class RoamingConfigUpdater():
     _default_thread_interval = 3 * 60 # 3 mins
-    _target_json_url = "https://georgar.de/api/place/getConfig"
+    _target_json_url = "https://raw.githubusercontent.com/kernzerfall/reddit-place-script-2022-rwth/main/archive/last_config.json"
     _ran_once = False
     _img_updater = None
 
@@ -62,7 +62,7 @@ class RoamingConfigUpdater():
 
 class ImageUpdater():
     _default_thread_interval = 6 * 60 # 6 mins
-    _target_image_url = "https://georgar.de/api/place/getImage"
+    _target_image_url = "https://raw.githubusercontent.com/kernzerfall/reddit-place-script-2022-rwth/main/archive/last_image.png"
     _rgb_transparent_new = (69, 42, 0, 255)
     _image_file = "image.png"
     _image_lock = ".image.png.lock"
